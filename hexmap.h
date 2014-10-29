@@ -26,6 +26,8 @@ class HexMap : public QGraphicsItem
 		void GetGroupedTilesRecurse(int X, int Y, QList<QPoint>* List);
 
 	public:
+		int CurrentPlayer;
+
 		HexTile* Tiles[MAP_MAX_WIDTH][MAP_MAX_HEIGHT];	// 32 x 24 grid
 
 		HexMap( unsigned int Seed );
@@ -47,7 +49,7 @@ class HexMap : public QGraphicsItem
 		QList<QPoint> GetGroupedTiles(int X, int Y);
 
 		void CombineHouses();
-
+		void StartNextTurn();
 
 };
 

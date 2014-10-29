@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 
 	QGraphicsView view( &scene );
 	viewObj = &view;
-	view.setRenderHint(QPainter::Antialiasing);
+	//view.setRenderHint(QPainter::Antialiasing);
 	view.setBackgroundBrush( QColor( 128, 140, 164 ) );
 	view.setCacheMode(QGraphicsView::CacheBackground);
 	view.setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);

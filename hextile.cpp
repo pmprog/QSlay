@@ -1,11 +1,10 @@
 #include "hextile.h"
 
+int HexTile::ManCosts[] = { 2, 6, 18, 54 };
+
 HexTile::HexTile()
 {
-	Owner = -1;
-	HasHouse = false;
-	HasCastle = false;
-	HasMan = false;
+	Reset();
 }
 
 void HexTile::Reset()
@@ -14,4 +13,6 @@ void HexTile::Reset()
 	HasHouse = false;
 	HasCastle = false;
 	HasMan = false;
+	HasTree = false;
+	HasGrave = false;
 }

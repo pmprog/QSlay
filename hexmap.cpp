@@ -18,6 +18,7 @@ HexMap::HexMap( unsigned int Seed )
 	}
 
 	SpriteFrame = 0;
+	CurrentPlayer = -1;
 }
 
 void HexMap::Animate()
@@ -79,22 +80,22 @@ void HexMap::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
 				}
 				if( Tiles[x][y]->HasHouse )
 				{
-					if( Tiles[x][y]->HouseCash < 10 )
+					if( Tiles[x][y]->Owner == CurrentPlayer && Tiles[x][y]->HouseCash >= 10 )
 					{
-						painter->drawPixmap( TileSpritePosition(x, y), *SpriteSheet, QRect(96, 1, 18, 28) );
-					} else {
 						painter->drawPixmap( TileSpritePosition(x, y), *SpriteSheet, QRect(77, (SpriteFrame * 29) + 1, 18, 28) );
+					} else {
+						painter->drawPixmap( TileSpritePosition(x, y), *SpriteSheet, QRect(96, 1, 18, 28) );
 					}
 				}
 
 				if( Tiles[x][y]->HasMan )
 				{
 					int manx = (Tiles[x][y]->ManType * 19) + 1;
-					if( Tiles[x][y]->ManMoved )
+					if( Tiles[x][y]->Owner == CurrentPlayer && !Tiles[x][y]->ManMoved )
 					{
-						painter->drawPixmap( TileSpritePosition(x, y), *SpriteSheet, QRect(manx, 1, 18, 28) );
-					} else {
 						painter->drawPixmap( TileSpritePosition(x, y), *SpriteSheet, QRect(manx, (SpriteFrame * 29) + 1, 18, 28) );
+					} else {
+						painter->drawPixmap( TileSpritePosition(x, y), *SpriteSheet, QRect(manx, 1, 18, 28) );
 					}
 				}
 
@@ -155,6 +156,7 @@ void HexMap::GenerateMap(unsigned int Seed, int NumberOfPlayers, int MapSize)
 {
 	LastSeed = Seed;
 	srand( Seed );
+	CurrentPlayer = 0;
 
 	for( int x = 0; x < MAP_MAX_WIDTH; x++ )
 	{
@@ -371,6 +373,79 @@ void HexMap::CombineHouses()
 				int randomtile = rand() % grp.size();
 				Tiles[grp.at(randomtile).x()][grp.at(randomtile).y()]->HasHouse = true;
 				Tiles[grp.at(randomtile).x()][grp.at(randomtile).y()]->HouseCash = groupcash;
+
+				for( int idx = 0; idx < grp.size(); idx++ )
+				{
+					processedlist.append(QPoint(grp.at(idx).x(), grp.at(idx).y()));
+				}
+
+			}
+		}
+	}
+}
+
+void HexMap::StartNextTurn()
+{
+	QList<QPoint> processedlist;
+
+	for( int x = 0; x < MAP_MAX_WIDTH; x++ )
+	{
+		for( int y = 0; y < MAP_MAX_HEIGHT; y++ )
+		{
+			bool alreadyprocessed = false;
+			for( int idx = 0; idx < processedlist.size(); idx++ )
+			{
+				if( processedlist.at(idx).x() == x && processedlist.at(idx).y() == y )
+				{
+					alreadyprocessed = true;
+					break;
+				}
+			}
+
+			if( Tiles[x][y]->HasHouse && !alreadyprocessed )
+			{
+				QList<QPoint> grp = GetGroupedTiles( x, y );
+
+				bool hasmen = false;
+				for( int idx = 0; idx < grp.size(); idx++ )
+				{
+					HexTile* t = Tiles[grp.at(idx).x()][grp.at(idx).y()];
+
+					// Graves turn to trees
+					if( t->HasGrave )
+					{
+						t->HasGrave = false;
+						t->HasTree = true;
+						t->TreeType = 0;
+					}
+					// Trees spread
+					if( t->HasTree )
+					{
+						// TODO: Spread trees
+					} else {
+						Tiles[x][y]->HouseCash++;
+					}
+					// Cost man
+					if( t->HasMan )
+					{
+						Tiles[x][y]->HouseCash -= HexTile::ManCosts[t->ManType];
+						hasmen = true;
+					}
+				}
+
+				// No money? Kill men
+				if( hasmen && Tiles[x][y]->HouseCash < 0 )
+				{
+					for( int idx = 0; idx < grp.size(); idx++ )
+					{
+						HexTile* t = Tiles[grp.at(idx).x()][grp.at(idx).y()];
+						if( t->HasMan )
+						{
+							Tiles[x][y]->HasMan = false;
+							Tiles[x][y]->HasGrave = true;
+						}
+					}
+				}
 
 				for( int idx = 0; idx < grp.size(); idx++ )
 				{
