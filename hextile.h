@@ -16,6 +16,7 @@ class HexTile
 
 		HexTile();
 
+		void Reset();
 };
 
 #endif // HEXTILE_H

@@ -105,7 +105,7 @@ void HexMap::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
 
 void HexMap::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-	GenerateMap(LastSeed + 1, 6, MAP_SIZE_MEDIUM);
+	GenerateMap(LastSeed + 1, 6, MAP_SIZE_SMALL);
 }
 
 void HexMap::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
@@ -160,7 +160,7 @@ void HexMap::GenerateMap(unsigned int Seed, int NumberOfPlayers, int MapSize)
 	{
 		for( int y = 0; y < MAP_MAX_HEIGHT; y++ )
 		{
-			Tiles[x][y]->Owner = -1;
+			Tiles[x][y]->Reset();
 		}
 	}
 
@@ -196,6 +196,35 @@ void HexMap::GenerateMap(unsigned int Seed, int NumberOfPlayers, int MapSize)
 		x = adj[r].x();
 		y = adj[r].y();
 	}
+
+	// Populate houses
+	for( int x = 0; x < MAP_MAX_WIDTH; x++ )
+	{
+		for( int y = 0; y < MAP_MAX_HEIGHT; y++ )
+		{
+			if( Tiles[x][y]->Owner >= 0 )
+			{
+				QList<QPoint> adjtlist;
+				adjtlist.clear();
+				adjtlist = GetAdjectentOwnedTiles( x, y, Tiles[x][y]->Owner );
+				bool adjhashouse = false;
+				for( int idx = 0; idx < adjtlist.size(); idx++ )
+				{
+					if( Tiles[adjtlist.at(idx).x()][adjtlist.at(idx).y()]->HasHouse )
+					{
+						adjhashouse = true;
+						break;
+					}
+				}
+				if( adjtlist.size() > 0 && adjhashouse == false )
+				{
+					Tiles[x][y]->HasHouse = true;
+					Tiles[x][y]->HouseCash = 0;
+				}
+			}
+		}
+	}
+	CombineHouses();
 
 }
 
@@ -273,4 +302,82 @@ QList<QPoint> HexMap::GetAdjectentOwnedTiles(int X, int Y, int Owner)
 	}
 
 	return l;
+}
+
+QList<QPoint> HexMap::GetGroupedTiles(int X, int Y)
+{
+	QList<QPoint> l;
+	GetGroupedTilesRecurse( X, Y, &l );
+	return l;
+}
+
+void HexMap::GetGroupedTilesRecurse(int X, int Y, QList<QPoint>* List)
+{
+	List->append(QPoint(X, Y));
+	QList<QPoint> r = GetAdjectentOwnedTiles( X, Y, Tiles[X][Y]->Owner );
+	for( int idx = 0; idx < r.size(); idx++ )
+	{
+		bool foundpoint = false;
+		for( int fidx = 0; fidx < List->size(); fidx++ )
+		{
+			if( List->at(fidx).x() == r.at(idx).x() && List->at(fidx).y() == r.at(idx).y() )
+			{
+				foundpoint = true;
+				break;
+			}
+		}
+
+		if( !foundpoint )
+		{
+			GetGroupedTilesRecurse( r.at(idx).x(), r.at(idx).y(), List );
+		}
+	}
+}
+
+void HexMap::CombineHouses()
+{
+	QList<QPoint> processedlist;
+
+	for( int x = 0; x < MAP_MAX_WIDTH; x++ )
+	{
+		for( int y = 0; y < MAP_MAX_HEIGHT; y++ )
+		{
+			bool alreadyprocessed = false;
+			for( int idx = 0; idx < processedlist.size(); idx++ )
+			{
+				if( processedlist.at(idx).x() == x && processedlist.at(idx).y() == y )
+				{
+					alreadyprocessed = true;
+					break;
+				}
+			}
+
+			if( Tiles[x][y]->HasHouse && !alreadyprocessed )
+			{
+				QList<QPoint> grp = GetGroupedTiles( x, y );
+
+
+				int groupcash = 0;
+				for( int idx = 0; idx < grp.size(); idx++ )
+				{
+					if( Tiles[grp.at(idx).x()][grp.at(idx).y()]->HasHouse )
+					{
+						groupcash += Tiles[grp.at(idx).x()][grp.at(idx).y()]->HouseCash;
+						Tiles[grp.at(idx).x()][grp.at(idx).y()]->HasHouse = false;
+						Tiles[grp.at(idx).x()][grp.at(idx).y()]->HouseCash = 0;
+					}
+				}
+
+				int randomtile = rand() % grp.size();
+				Tiles[grp.at(randomtile).x()][grp.at(randomtile).y()]->HasHouse = true;
+				Tiles[grp.at(randomtile).x()][grp.at(randomtile).y()]->HouseCash = groupcash;
+
+				for( int idx = 0; idx < grp.size(); idx++ )
+				{
+					processedlist.append(QPoint(grp.at(idx).x(), grp.at(idx).y()));
+				}
+
+			}
+		}
+	}
 }

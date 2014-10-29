@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	Map->setPos( 10, 20 );
 
 	CurrentGame = new Game();
-	Map->GenerateMap( 0, 3, MAP_SIZE_MEDIUM );
+	Map->GenerateMap( 0, 6, MAP_SIZE_SMALL );
 
 	//scene.setSceneRect( 0, 0, Map->boundingRect().width() + 20, Map->boundingRect().height() + 30);
 
